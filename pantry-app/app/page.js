@@ -1,65 +1,326 @@
-import Image from "next/image";
+'use client'
+import { useState } from 'react';
 
 export default function Home() {
+  // State za formu
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({
+    ime: '',
+    trenutnaKolicina: '',
+    minKolicina: '',
+    ciljanaKolicina: '',
+    kategorija: '',
+    lokacija: ''
+  });
+
+  // State za namirnice (ovdje se spremaju - zasad u memoriji)
+  const [namirnice, setNamirnice] = useState([]);
+
+  const kategorije = [
+    'Umaci', 'Konzerve', 'Začini', 'Napici', 'Grickalice', 
+    'Tjestenina', 'Pecivo', 'Ostalo'
+  ];
+
+  const lokacije = ['Frižider', 'Led', 'Spajza'];
+
+  // Funkcija za promjenu input polja
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+
+  // Funkcija za spremanje namirnice
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    const novaNamirnica = {
+      id: Date.now(), // Privremeni ID
+      ime: formData.ime,
+      trenutnaKolicina: Number(formData.trenutnaKolicina),
+      minKolicina: Number(formData.minKolicina),
+      ciljanaKolicina: Number(formData.ciljanaKolicina),
+      kategorija: formData.kategorija,
+      lokacija: formData.lokacija
+    };
+
+    // Dodaj u listu
+    setNamirnice([...namirnice, novaNamirnica]);
+    
+    console.log('Dodao namirnicu:', novaNamirnica);
+    
+    setShowForm(false);
+    
+    // Reset forme
+    setFormData({
+      ime: '',
+      trenutnaKolicina: '',
+      minKolicina: '',
+      ciljanaKolicina: '',
+      kategorija: '',
+      lokacija: ''
+    });
+  };
+
+  // Funkcija za generiranje shopping liste
+  const getShoppingList = () => {
+    return namirnice
+      .filter(n => n.trenutnaKolicina <= n.minKolicina)
+      .map(n => ({
+        ...n,
+        trebaNabaviti: n.ciljanaKolicina - n.trenutnaKolicina
+      }));
+  };
+
+  // Filtriraj namirnice po lokaciji
+  const getNamirnicePoLokaciji = (lokacija) => {
+    return namirnice.filter(n => n.lokacija === lokacija);
+  };
+
+  const shoppingList = getShoppingList();
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.js file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="min-h-screen bg-gray-900 text-white p-8">
+      <div className="max-w-7xl mx-auto">
+        
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-bold">🏠 Moja Riznica</h1>
+          <button 
+            onClick={() => setShowForm(!showForm)}
+            className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg font-bold text-lg transition"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            {showForm ? 'ZATVORI' : '+ DODAJ'}
+          </button>
         </div>
-      </main>
+
+        {/* Forma za dodavanje */}
+        {showForm && (
+          <div className="bg-gray-800 p-6 rounded-lg mb-8">
+            <h2 className="text-2xl font-bold mb-4">Dodaj novu namirnicu</h2>
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
+              
+              {/* Ime */}
+              <div>
+                <label className="block mb-2 font-semibold">Ime namirnice</label>
+                <input 
+                  type="text"
+                  name="ime"
+                  value={formData.ime}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full p-3 bg-gray-700 rounded-lg border border-gray-600 focus:border-green-500 focus:outline-none"
+                  placeholder="npr. Majoneza"
+                />
+              </div>
+
+              {/* Količine u grid-u */}
+              <div className="grid grid-cols-3 gap-4">
+                
+                <div>
+                  <label className="block mb-2 font-semibold">Trenutna količina</label>
+                  <input 
+                    type="number"
+                    name="trenutnaKolicina"
+                    value={formData.trenutnaKolicina}
+                    onChange={handleInputChange}
+                    required
+                    min="0"
+                    className="w-full p-3 bg-gray-700 rounded-lg border border-gray-600 focus:border-green-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block mb-2 font-semibold">Min. količina</label>
+                  <input 
+                    type="number"
+                    name="minKolicina"
+                    value={formData.minKolicina}
+                    onChange={handleInputChange}
+                    required
+                    min="0"
+                    className="w-full p-3 bg-gray-700 rounded-lg border border-gray-600 focus:border-yellow-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block mb-2 font-semibold">Ciljna količina</label>
+                  <input 
+                    type="number"
+                    name="ciljanaKolicina"
+                    value={formData.ciljanaKolicina}
+                    onChange={handleInputChange}
+                    required
+                    min="0"
+                    className="w-full p-3 bg-gray-700 rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+
+              </div>
+
+              {/* Kategorija */}
+              <div>
+                <label className="block mb-2 font-semibold">Kategorija</label>
+                <input 
+                  type="text"
+                  name="kategorija"
+                  value={formData.kategorija}
+                  onChange={handleInputChange}
+                  list="kategorije"
+                  required
+                  className="w-full p-3 bg-gray-700 rounded-lg border border-gray-600 focus:border-green-500 focus:outline-none"
+                  placeholder="Odaberi ili upiši..."
+                />
+                <datalist id="kategorije">
+                  {kategorije
+                    .filter(kat => kat.toLowerCase().includes(formData.kategorija.toLowerCase()))
+                    .map(kat => <option key={kat} value={kat} />)
+                  }
+                </datalist>
+              </div>
+
+              {/* Lokacija */}
+              <div>
+                <label className="block mb-2 font-semibold">Lokacija</label>
+                <select 
+                  name="lokacija"
+                  value={formData.lokacija}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full p-3 bg-gray-700 rounded-lg border border-gray-600 focus:border-green-500 focus:outline-none"
+                >
+                  <option value="">Odaberi lokaciju...</option>
+                  {lokacije.map(lok => (
+                    <option key={lok} value={lok}>{lok}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Submit button */}
+              <button 
+                type="submit"
+                className="w-full bg-green-600 hover:bg-green-700 py-3 rounded-lg font-bold text-lg transition"
+              >
+                SPREMI NAMIRNICU
+              </button>
+
+            </form>
+          </div>
+        )}
+
+        {/* Main layout - 2 stupca */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          
+          {/* LIJEVI DIO - Lokacije (3 stupca) */}
+          <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            {/* FRIŽIDER */}
+            <div className="bg-blue-900/30 border-2 border-blue-500 rounded-lg p-6">
+              <h2 className="text-2xl font-bold mb-4 text-blue-400 flex items-center gap-2">
+                🧊 Frižider
+              </h2>
+              <div className="space-y-3">
+                {getNamirnicePoLokaciji('Frižider').length === 0 ? (
+                  <p className="text-gray-400 text-sm">Prazno...</p>
+                ) : (
+                  getNamirnicePoLokaciji('Frižider').map(namirnica => (
+                    <div key={namirnica.id} className="bg-gray-800 p-3 rounded">
+                      <p className="font-bold">{namirnica.ime}</p>
+                      <p className="text-sm text-gray-400">{namirnica.kategorija}</p>
+                      <p className="text-sm mt-1">
+                        <span className={namirnica.trenutnaKolicina <= namirnica.minKolicina ? 'text-red-400' : 'text-green-400'}>
+                          {namirnica.trenutnaKolicina}
+                        </span>
+                        <span className="text-gray-500"> / {namirnica.ciljanaKolicina}</span>
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* LED */}
+            <div className="bg-cyan-900/30 border-2 border-cyan-500 rounded-lg p-6">
+              <h2 className="text-2xl font-bold mb-4 text-cyan-400 flex items-center gap-2">
+                ❄️ Led
+              </h2>
+              <div className="space-y-3">
+                {getNamirnicePoLokaciji('Led').length === 0 ? (
+                  <p className="text-gray-400 text-sm">Prazno...</p>
+                ) : (
+                  getNamirnicePoLokaciji('Led').map(namirnica => (
+                    <div key={namirnica.id} className="bg-gray-800 p-3 rounded">
+                      <p className="font-bold">{namirnica.ime}</p>
+                      <p className="text-sm text-gray-400">{namirnica.kategorija}</p>
+                      <p className="text-sm mt-1">
+                        <span className={namirnica.trenutnaKolicina <= namirnica.minKolicina ? 'text-red-400' : 'text-green-400'}>
+                          {namirnica.trenutnaKolicina}
+                        </span>
+                        <span className="text-gray-500"> / {namirnica.ciljanaKolicina}</span>
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* SPAJZA */}
+            <div className="bg-orange-900/30 border-2 border-orange-500 rounded-lg p-6">
+              <h2 className="text-2xl font-bold mb-4 text-orange-400 flex items-center gap-2">
+                🏺 Spajza
+              </h2>
+              <div className="space-y-3">
+                {getNamirnicePoLokaciji('Spajza').length === 0 ? (
+                  <p className="text-gray-400 text-sm">Prazno...</p>
+                ) : (
+                  getNamirnicePoLokaciji('Spajza').map(namirnica => (
+                    <div key={namirnica.id} className="bg-gray-800 p-3 rounded">
+                      <p className="font-bold">{namirnica.ime}</p>
+                      <p className="text-sm text-gray-400">{namirnica.kategorija}</p>
+                      <p className="text-sm mt-1">
+                        <span className={namirnica.trenutnaKolicina <= namirnica.minKolicina ? 'text-red-400' : 'text-green-400'}>
+                          {namirnica.trenutnaKolicina}
+                        </span>
+                        <span className="text-gray-500"> / {namirnica.ciljanaKolicina}</span>
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+          </div>
+
+          {/* DESNI DIO - Shopping Lista */}
+          <div className="lg:col-span-1">
+            <div className="bg-red-900/30 border-2 border-red-500 rounded-lg p-6 sticky top-8">
+              <h2 className="text-2xl font-bold mb-4 text-red-400 flex items-center gap-2">
+                🛒 Shopping Lista
+              </h2>
+              <div className="space-y-3">
+                {shoppingList.length === 0 ? (
+                  <p className="text-gray-400 text-sm">Sve je OK! ✅</p>
+                ) : (
+                  shoppingList.map(item => (
+                    <div key={item.id} className="bg-gray-800 p-3 rounded border-l-4 border-red-500">
+                      <p className="font-bold">{item.ime}</p>
+                      <p className="text-sm text-gray-400">{item.kategorija}</p>
+                      <p className="text-sm mt-1 text-red-400 font-bold">
+                        Nabavi: {item.trebaNabaviti} kom
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Trenutno: {item.trenutnaKolicina} / Min: {item.minKolicina}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
     </div>
   );
 }
