@@ -1,0 +1,25 @@
+{
+  "name": "pantry-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "next": "^16.2.9",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.5.2",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.9",
+    "postcss": "^8.5.18",
+    "prisma": "^6.19.3",
+    "tailwindcss": "^3.4.1"
+  }
+}

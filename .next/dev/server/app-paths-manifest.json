@@ -1,0 +1,4 @@
+{
+  "/api/namirnice/route": "app/api/namirnice/route.js",
+  "/page": "app/page.js"
+}
