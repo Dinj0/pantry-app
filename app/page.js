@@ -1,357 +1,360 @@
-'use client'
+'use client';
 import { useState, useEffect } from 'react';
 
 export default function Home() {
-  // State za formu
-  const [showForm, setShowForm] = useState(false);
+  const [namirnice, setNamirnice] = useState([]);
+  const [arhiva, setArhiva] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [showShoppingList, setShowShoppingList] = useState(true);
+  const [showArhiva, setShowArhiva] = useState(false);
+  
   const [formData, setFormData] = useState({
-    ime: '',
+    naziv: '',
     trenutnaKolicina: '',
     minKolicina: '',
-    ciljanaKolicina: '',
+    targetKolicina: '',
     kategorija: '',
-    lokacija: ''
+    lokacija: 'Frižider',
+    isLocked: true
   });
 
-  // State za namirnice (sada se učitavaju iz baze!)
-  const [namirnice, setNamirnice] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const kategorije = [
-    'Umaci', 'Konzerve', 'Začini', 'Napici', 'Grickalice', 
-    'Tjestenina', 'Pecivo', 'Ostalo'
-  ];
-
-  const lokacije = ['Frižider', 'Led', 'Spajza'];
-
-  // Učitaj namirnice iz baze kad se stranica otvori
   useEffect(() => {
     fetchNamirnice();
+    fetchArhiva();
   }, []);
 
-  // Funkcija za dohvaćanje namirnica
   const fetchNamirnice = async () => {
-    try {
-      const response = await fetch('/api/namirnice');
-      const data = await response.json();
-      setNamirnice(data);
-      setLoading(false);
-    } catch (error) {
-      console.error('Greška pri učitavanju:', error);
-      setLoading(false);
-    }
+    const res = await fetch('/api/namirnice');
+    const data = await res.json();
+    setNamirnice(data);
   };
 
-  // Funkcija za promjenu input polja
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+  const fetchArhiva = async () => {
+    const res = await fetch('/api/arhiva');
+    const data = await res.json();
+    setArhiva(data);
   };
 
-  // Funkcija za spremanje namirnice
   const handleSubmit = async (e) => {
     e.preventDefault();
+    await fetch('/api/namirnice', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData)
+    });
+    setShowModal(false);
+    setFormData({
+      naziv: '',
+      trenutnaKolicina: '',
+      minKolicina: '',
+      targetKolicina: '',
+      kategorija: '',
+      lokacija: 'Frižider',
+      isLocked: true
+    });
+    fetchNamirnice();
+  };
+
+  const toggleLock = async (id, currentLockStatus) => {
+    await fetch('/api/namirnice', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, isLocked: !currentLockStatus })
+    });
+    fetchNamirnice();
+  };
+
+  const updateKolicina = async (id, novaKolicina) => {
+    const result = await fetch('/api/namirnice', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, trenutnaKolicina: novaKolicina })
+    });
     
-    try {
-      const response = await fetch('/api/namirnice', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
+    const data = await result.json();
+    if (data.archived) {
+      fetchArhiva();
+    }
+    fetchNamirnice();
+  };
+
+  const deleteNamirnica = async (id) => {
+    if (confirm('Jeste li sigurni da želite obrisati ovu namirnicu?')) {
+      await fetch('/api/namirnice', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
       });
-
-      if (response.ok) {
-        // Osvježi popis namirnica
-        await fetchNamirnice();
-        
-        setShowForm(false);
-        
-        // Reset forme
-        setFormData({
-          ime: '',
-          trenutnaKolicina: '',
-          minKolicina: '',
-          ciljanaKolicina: '',
-          kategorija: '',
-          lokacija: ''
-        });
-
-        console.log('Namirnica uspješno dodana!');
-      }
-    } catch (error) {
-      console.error('Greška pri spremanju:', error);
+      fetchNamirnice();
     }
   };
 
-  // Funkcija za generiranje shopping liste
-  const getShoppingList = () => {
-    return namirnice
-      .filter(n => n.trenutnaKolicina <= n.minKolicina)
-      .map(n => ({
-        ...n,
-        trebaNabaviti: n.ciljanaKolicina - n.trenutnaKolicina
-      }));
+  const deleteArhiva = async (id) => {
+    if (confirm('Obrisati ovu stavku iz arhive?')) {
+      await fetch('/api/arhiva', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      });
+      fetchArhiva();
+    }
   };
 
-  // Filtriraj namirnice po lokaciji
-  const getPoLokaciji = (lokacija) => {
-    return namirnice.filter(n => n.lokacija === lokacija);
+  const groupByLocation = (location) => {
+    return namirnice.filter(n => n.lokacija === location);
   };
 
-  const shoppingList = getShoppingList();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
-        <p className="text-2xl">Učitavam...</p>
-      </div>
-    );
-  }
+  const shoppingList = namirnice.filter(n => n.trenutnaKolicina <= n.minKolicina);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-8">
-      <div className="max-w-7xl mx-auto">
-        
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold">🏠 Moja Riznica</h1>
-          <button 
-            onClick={() => setShowForm(!showForm)}
-            className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg font-bold text-lg transition"
-          >
-            {showForm ? 'ZATVORI' : '+ DODAJ'}
-          </button>
+    <div className="min-h-screen bg-gray-900 p-8">
+      <h1 className="text-4xl font-bold text-center mb-8 text-cyan-400 drop-shadow-[0_0_15px_rgba(34,211,238,0.5)]">
+        🏠 Pantry Manager
+      </h1>
+      
+      <div className="flex gap-6">
+        {/* LIJEVA STRANA - 3 Lokacije */}
+        <div className="flex-1 grid grid-cols-3 gap-4">
+          {['Frižider', 'Led', 'Spajza'].map(lokacija => (
+            <div key={lokacija} className="bg-gray-800 rounded-lg shadow-xl border border-gray-700">
+              <h2 className="text-xl font-bold text-center text-cyan-400 py-3 border-b border-gray-700 bg-gray-900">
+                {lokacija === 'Frižider' && '🧊'} 
+                {lokacija === 'Led' && '❄️'} 
+                {lokacija === 'Spajza' && '🏺'} 
+                {lokacija}
+              </h2>
+              
+              <div className="p-4 space-y-3 max-h-96 overflow-y-auto">
+                {groupByLocation(lokacija).map(item => (
+                  <div key={item.id} className="bg-gray-700 p-3 rounded border border-gray-600 hover:border-cyan-500 transition-all">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="font-bold text-white">{item.naziv}</span>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => toggleLock(item.id, item.isLocked)}
+                          className="text-xl hover:scale-110 transition-transform"
+                          title={item.isLocked ? 'Locked' : 'Unlocked'}
+                        >
+                          {item.isLocked ? '🔒' : '🔓'}
+                        </button>
+                        <button
+                          onClick={() => deleteNamirnica(item.id)}
+                          className="text-xl hover:scale-110 transition-transform"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="text-sm text-gray-300 mb-3">
+                      📂 {item.kategorija}
+                    </div>
+                    
+                    <div className="flex items-center justify-center gap-3">
+                      <button
+                        onClick={() => updateKolicina(item.id, Math.max(0, item.trenutnaKolicina - 1))}
+                        className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded font-bold shadow-lg"
+                      >
+                        −
+                      </button>
+                      <span className={`font-bold text-lg ${item.trenutnaKolicina <= item.minKolicina ? 'text-red-400' : 'text-green-400'}`}>
+                        {item.trenutnaKolicina} / {item.targetKolicina}
+                      </span>
+                      <button
+                        onClick={() => updateKolicina(item.id, item.trenutnaKolicina + 1)}
+                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded font-bold shadow-lg"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
 
-        {/* Forma za dodavanje */}
-        {showForm && (
-          <div className="bg-gray-800 p-6 rounded-lg mb-8">
-            <h2 className="text-2xl font-bold mb-4">Dodaj novu namirnicu</h2>
+        {/* DESNA STRANA - Shopping List + Arhiva */}
+        <div className="w-80 space-y-4">
+          {/* Shopping List */}
+          <div className="bg-gray-800 rounded-lg shadow-xl border border-gray-700 overflow-hidden">
+            <button
+              onClick={() => setShowShoppingList(!showShoppingList)}
+              className="w-full bg-orange-600 hover:bg-orange-700 text-white p-4 font-bold text-lg flex justify-between items-center transition-all"
+            >
+              <span>🛒 Lista za Kupovinu ({shoppingList.length})</span>
+              <span className="text-2xl">{showShoppingList ? '▼' : '▶'}</span>
+            </button>
             
+            {showShoppingList && (
+              <div className="p-4 max-h-96 overflow-y-auto">
+                {shoppingList.length === 0 ? (
+                  <p className="text-gray-400 text-center py-8">Sve je na stanju! ✅</p>
+                ) : (
+                  <ul className="space-y-3">
+                    {shoppingList.map(item => (
+                      <li key={item.id} className="bg-gray-700 p-3 rounded border border-orange-500">
+                        <div className="font-bold text-white">{item.naziv}</div>
+                        <div className="text-sm text-orange-400 font-semibold">
+                          📦 Kupi: {item.targetKolicina - item.trenutnaKolicina} kom
+                        </div>
+                        <div className="text-xs text-gray-400 mt-1">
+                          {item.lokacija} • {item.kategorija}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Arhiva */}
+          <div className="bg-gray-800 rounded-lg shadow-xl border border-gray-700 overflow-hidden">
+            <button
+              onClick={() => setShowArhiva(!showArhiva)}
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white p-4 font-bold text-lg flex justify-between items-center transition-all"
+            >
+              <span>📦 Arhiva Potrošenog ({arhiva.length})</span>
+              <span className="text-2xl">{showArhiva ? '▼' : '▶'}</span>
+            </button>
+            
+            {showArhiva && (
+              <div className="p-4 max-h-96 overflow-y-auto">
+                {arhiva.length === 0 ? (
+                  <p className="text-gray-400 text-center py-8">Arhiva je prazna</p>
+                ) : (
+                  <ul className="space-y-3">
+                    {arhiva.map(item => (
+                      <li key={item.id} className="bg-gray-700 p-3 rounded border border-purple-500 flex justify-between items-start">
+                        <div>
+                          <div className="font-bold text-white">{item.naziv}</div>
+                          <div className="text-xs text-gray-400 mt-1">
+                            {item.lokacija} • {item.kategorija}
+                          </div>
+                          <div className="text-xs text-purple-400 mt-1">
+                            📅 {new Date(item.potrosenoDatum).toLocaleDateString('hr-HR')}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => deleteArhiva(item.id)}
+                          className="text-xl hover:scale-110 transition-transform"
+                        >
+                          🗑️
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Floating Add Button */}
+      <button
+        onClick={() => setShowModal(true)}
+        className="fixed bottom-8 right-8 bg-cyan-500 hover:bg-cyan-600 text-white p-5 rounded-full shadow-2xl text-3xl hover:scale-110 transition-transform drop-shadow-[0_0_20px_rgba(34,211,238,0.7)]"
+      >
+        ➕
+      </button>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center p-4 z-50">
+          <div className="bg-gray-800 rounded-2xl p-6 w-full max-w-md shadow-2xl border-2 border-cyan-500">
+            <h2 className="text-3xl font-bold mb-6 text-cyan-400 drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]">
+              Dodaj Namirnicu
+            </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <input
+                type="text"
+                placeholder="Naziv"
+                className="w-full p-3 bg-gray-700 text-white border-2 border-gray-600 rounded-lg focus:border-cyan-500 focus:outline-none placeholder-gray-400"
+                value={formData.naziv}
+                onChange={(e) => setFormData({...formData, naziv: e.target.value})}
+                required
+              />
               
-              {/* Ime */}
-              <div>
-                <label className="block mb-2 font-semibold">Ime namirnice</label>
-                <input 
-                  type="text"
-                  name="ime"
-                  value={formData.ime}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full p-3 bg-gray-700 rounded-lg border border-gray-600 focus:border-green-500 focus:outline-none"
-                  placeholder="npr. Majoneza"
-                />
-              </div>
-
-              {/* Količine u grid-u */}
-              <div className="grid grid-cols-3 gap-4">
-                
-                <div>
-                  <label className="block mb-2 font-semibold">Trenutna količina</label>
-                  <input 
-                    type="number"
-                    name="trenutnaKolicina"
-                    value={formData.trenutnaKolicina}
-                    onChange={handleInputChange}
-                    required
-                    min="0"
-                    className="w-full p-3 bg-gray-700 rounded-lg border border-gray-600 focus:border-green-500 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block mb-2 font-semibold">Min. količina</label>
-                  <input 
-                    type="number"
-                    name="minKolicina"
-                    value={formData.minKolicina}
-                    onChange={handleInputChange}
-                    required
-                    min="0"
-                    className="w-full p-3 bg-gray-700 rounded-lg border border-gray-600 focus:border-yellow-500 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block mb-2 font-semibold">Ciljna količina</label>
-                  <input 
-                    type="number"
-                    name="ciljanaKolicina"
-                    value={formData.ciljanaKolicina}
-                    onChange={handleInputChange}
-                    required
-                    min="0"
-                    className="w-full p-3 bg-gray-700 rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
-                  />
-                </div>
-
-              </div>
-
-              {/* Kategorija */}
-              <div>
-                <label className="block mb-2 font-semibold">Kategorija</label>
-                <input 
-                  type="text"
-                  name="kategorija"
-                  value={formData.kategorija}
-                  onChange={handleInputChange}
-                  list="kategorije"
-                  required
-                  className="w-full p-3 bg-gray-700 rounded-lg border border-gray-600 focus:border-green-500 focus:outline-none"
-                  placeholder="Odaberi ili upiši..."
-                />
-                <datalist id="kategorije">
-                  {kategorije
-                    .filter(kat => kat.toLowerCase().includes(formData.kategorija.toLowerCase()))
-                    .map(kat => <option key={kat} value={kat} />)
-                  }
-                </datalist>
-              </div>
-
-              {/* Lokacija */}
-              <div>
-                <label className="block mb-2 font-semibold">Lokacija</label>
-                <select 
-                  name="lokacija"
-                  value={formData.lokacija}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full p-3 bg-gray-700 rounded-lg border border-gray-600 focus:border-green-500 focus:outline-none"
-                >
-                  <option value="">Odaberi lokaciju...</option>
-                  {lokacije.map(lok => (
-                    <option key={lok} value={lok}>{lok}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Submit button */}
-              <button 
-                type="submit"
-                className="w-full bg-green-600 hover:bg-green-700 py-3 rounded-lg font-bold text-lg transition"
+              <input
+                type="number"
+                placeholder="Trenutna količina"
+                className="w-full p-3 bg-gray-700 text-white border-2 border-gray-600 rounded-lg focus:border-cyan-500 focus:outline-none placeholder-gray-400"
+                value={formData.trenutnaKolicina}
+                onChange={(e) => setFormData({...formData, trenutnaKolicina: e.target.value})}
+                required
+              />
+              
+              <input
+                type="number"
+                placeholder="Min količina (prag)"
+                className="w-full p-3 bg-gray-700 text-white border-2 border-gray-600 rounded-lg focus:border-cyan-500 focus:outline-none placeholder-gray-400"
+                value={formData.minKolicina}
+                onChange={(e) => setFormData({...formData, minKolicina: e.target.value})}
+                required
+              />
+              
+              <input
+                type="number"
+                placeholder="Target količina"
+                className="w-full p-3 bg-gray-700 text-white border-2 border-gray-600 rounded-lg focus:border-cyan-500 focus:outline-none placeholder-gray-400"
+                value={formData.targetKolicina}
+                onChange={(e) => setFormData({...formData, targetKolicina: e.target.value})}
+                required
+              />
+              
+              <input
+                type="text"
+                placeholder="Kategorija"
+                className="w-full p-3 bg-gray-700 text-white border-2 border-gray-600 rounded-lg focus:border-cyan-500 focus:outline-none placeholder-gray-400"
+                value={formData.kategorija}
+                onChange={(e) => setFormData({...formData, kategorija: e.target.value})}
+                required
+              />
+              
+              <select
+                className="w-full p-3 bg-gray-700 text-white border-2 border-gray-600 rounded-lg focus:border-cyan-500 focus:outline-none"
+                value={formData.lokacija}
+                onChange={(e) => setFormData({...formData, lokacija: e.target.value})}
               >
-                SPREMI NAMIRNICU
-              </button>
+                <option value="Frižider">🧊 Frižider</option>
+                <option value="Led">❄️ Led</option>
+                <option value="Spajza">🏺 Spajza</option>
+              </select>
 
+              <div className="flex items-center gap-3 bg-gray-700 p-3 rounded-lg border-2 border-cyan-500">
+                <input
+                  type="checkbox"
+                  id="isLocked"
+                  checked={formData.isLocked}
+                  onChange={(e) => setFormData({...formData, isLocked: e.target.checked})}
+                  className="w-5 h-5"
+                />
+                <label htmlFor="isLocked" className="text-sm font-medium text-white">
+                  🔒 Zaključaj (ostaje na listi kad dođe na 0)
+                </label>
+              </div>
+              
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="submit"
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-bold shadow-lg"
+                >
+                  ✅ Dodaj
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-bold shadow-lg"
+                >
+                  ❌ Odustani
+                </button>
+              </div>
             </form>
           </div>
-        )}
-
-        {/* Main layout - 2 stupca */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          
-          {/* LIJEVI DIO - Lokacije (3 stupca) */}
-          <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
-            
-            {/* FRIŽIDER */}
-            <div className="bg-blue-900/30 border-2 border-blue-500 rounded-lg p-6">
-              <h2 className="text-2xl font-bold mb-4 text-blue-400 flex items-center gap-2">
-                🧊 Frižider
-              </h2>
-              <div className="space-y-3">
-                {getPoLokaciji('Frižider').length === 0 ? (
-                  <p className="text-gray-400 text-sm">Prazno...</p>
-                ) : (
-                  getPoLokaciji('Frižider').map(namirnica => (
-                    <div key={namirnica.id} className="bg-gray-800 p-3 rounded">
-                      <p className="font-bold">{namirnica.ime}</p>
-                      <p className="text-sm text-gray-400">{namirnica.kategorija}</p>
-                      <p className="text-sm mt-1">
-                        <span className={namirnica.trenutnaKolicina <= namirnica.minKolicina ? 'text-red-400' : 'text-green-400'}>
-                          {namirnica.trenutnaKolicina}
-                        </span>
-                        <span className="text-gray-500"> / {namirnica.ciljanaKolicina}</span>
-                      </p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* LED */}
-            <div className="bg-cyan-900/30 border-2 border-cyan-500 rounded-lg p-6">
-              <h2 className="text-2xl font-bold mb-4 text-cyan-400 flex items-center gap-2">
-                ❄️ Led
-              </h2>
-              <div className="space-y-3">
-                {getPoLokaciji('Led').length === 0 ? (
-                  <p className="text-gray-400 text-sm">Prazno...</p>
-                ) : (
-                  getPoLokaciji('Led').map(namirnica => (
-                    <div key={namirnica.id} className="bg-gray-800 p-3 rounded">
-                      <p className="font-bold">{namirnica.ime}</p>
-                      <p className="text-sm text-gray-400">{namirnica.kategorija}</p>
-                      <p className="text-sm mt-1">
-                        <span className={namirnica.trenutnaKolicina <= namirnica.minKolicina ? 'text-red-400' : 'text-green-400'}>
-                          {namirnica.trenutnaKolicina}
-                        </span>
-                        <span className="text-gray-500"> / {namirnica.ciljanaKolicina}</span>
-                      </p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* SPAJZA */}
-            <div className="bg-orange-900/30 border-2 border-orange-500 rounded-lg p-6">
-              <h2 className="text-2xl font-bold mb-4 text-orange-400 flex items-center gap-2">
-                🏺 Spajza
-              </h2>
-              <div className="space-y-3">
-                {getPoLokaciji('Spajza').length === 0 ? (
-                  <p className="text-gray-400 text-sm">Prazno...</p>
-                ) : (
-                  getPoLokaciji('Spajza').map(namirnica => (
-                    <div key={namirnica.id} className="bg-gray-800 p-3 rounded">
-                      <p className="font-bold">{namirnica.ime}</p>
-                      <p className="text-sm text-gray-400">{namirnica.kategorija}</p>
-                      <p className="text-sm mt-1">
-                        <span className={namirnica.trenutnaKolicina <= namirnica.minKolicina ? 'text-red-400' : 'text-green-400'}>
-                          {namirnica.trenutnaKolicina}
-                        </span>
-                        <span className="text-gray-500"> / {namirnica.ciljanaKolicina}</span>
-                      </p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-          </div>
-
-          {/* DESNI DIO - Shopping Lista */}
-          <div className="lg:col-span-1">
-            <div className="bg-red-900/30 border-2 border-red-500 rounded-lg p-6 sticky top-8">
-              <h2 className="text-2xl font-bold mb-4 text-red-400 flex items-center gap-2">
-                🛒 Shopping Lista
-              </h2>
-              <div className="space-y-3">
-                {shoppingList.length === 0 ? (
-                  <p className="text-gray-400 text-sm">Sve je OK! ✅</p>
-                ) : (
-                  shoppingList.map(item => (
-                    <div key={item.id} className="bg-gray-800 p-3 rounded border-l-4 border-red-500">
-                      <p className="font-bold">{item.ime}</p>
-                      <p className="text-sm text-gray-400">{item.kategorija}</p>
-                      <p className="text-sm mt-1 text-red-400 font-bold">
-                        Nabavi: {item.trebaNabaviti} kom
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Trenutno: {item.trenutnaKolicina} / Min: {item.minKolicina}
-                      </p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-
         </div>
-
-      </div>
+      )}
     </div>
   );
 }

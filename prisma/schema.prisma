@@ -8,13 +8,21 @@ datasource db {
 }
 
 model Namirnica {
-  id                 Int      @id @default(autoincrement())
-  ime                String
-  trenutnaKolicina   Int
-  minKolicina        Int
-  ciljanaKolicina    Int
-  kategorija         String
-  lokacija           String
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id              Int      @id @default(autoincrement())
+  naziv           String
+  trenutnaKolicina Int
+  minKolicina     Int
+  targetKolicina  Int
+  kategorija      String
+  lokacija        String
+  isLocked        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+}
+
+model PotrosenaNamirnica {
+  id              Int      @id @default(autoincrement())
+  naziv           String
+  kategorija      String
+  lokacija        String
+  potrosenoDatum  DateTime @default(now())
 }
