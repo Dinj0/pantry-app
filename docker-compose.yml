@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pantry-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: pantry_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      pantry_network:
+        ipv4_address: 192.168.1.203
+
+  app:
+    build: .
+    container_name: pantry-app
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgres@192.168.1.203:5432/pantry_db?schema=public"
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    networks:
+      pantry_network:
+        ipv4_address: 192.168.1.202
+
+volumes:
+  postgres_data:
+
+networks:
+  pantry_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.1.0/24
+          gateway: 192.168.1.1
