@@ -1,0 +1,19 @@
+version 1.0 ----trenutno----
+
+main aplikacija, pocetak sa recimo opcijama odvojenim spajza, frizider, led. dodavanje namirnica u neku od tablica.  shopping lista i arhiva sa strane. shopping lista se automatski 
+puni sa namirnicama koje padnu neki treshold postavljeni. odabir zakljucavanja namirnice( ako je zakljucana kada padne na 0 ostaje u 
+odredenoj kategoriji ali ce pisati 0/x , u suprotnom ako je otkljucano namirnica ide u arhivu)
+
+postaviti live na home-server preko dockera
+
+version 1.1
+
+1. U arhivi dodati plusic pored stavke da se moze vratiti u pantry
+2. U kosaricu dodati plus da se mogu  dodavati i stvari van pantrya- tj samostalno
+3. Sa shopping liste pored sastojka dodati plusic- kad se stisne trazi lokaciju i onda on dodaje u pantry
+
+version 1.2
+
+
+version 1.3
+
