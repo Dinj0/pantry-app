@@ -26,3 +26,8 @@ model PotrosenaNamirnica {
   lokacija        String
   potrosenoDatum  DateTime @default(now())
 }
+
+model Kategorija {
+  id     Int    @id @default(autoincrement())
+  naziv  String @unique
+}
