@@ -304,14 +304,41 @@ export default function Home() {
                 required
               />
               
-              <input
-                type="text"
-                placeholder="Kategorija"
-                className="w-full p-3 bg-gray-700 text-white border-2 border-gray-600 rounded-lg focus:border-cyan-500 focus:outline-none placeholder-gray-400"
-                value={formData.kategorija}
-                onChange={(e) => setFormData({...formData, kategorija: e.target.value})}
-                required
-              />
+              <div className="space-y-2">
+      <select
+    className="w-full p-3 bg-gray-700 text-white border-2 border-gray-600 rounded-lg focus:border-cyan-500 focus:outline-none"
+    value={formData.kategorija}
+    onChange={(e) => {
+      if (e.target.value === '__nova__') {
+        setFormData({...formData, kategorija: ''});
+      } else {
+        setFormData({...formData, kategorija: e.target.value});
+      }
+    }}
+  >
+    <option value="">-- Odaberi kategoriju --</option>
+    <option value="Hrana">🍞 Hrana</option>
+    <option value="Umaci">🥫 Umaci</option>
+    <option value="Sokovi">🧃 Sokovi</option>
+    <option value="Mliječni">🥛 Mliječni</option>
+    <option value="Meso">🥩 Meso</option>
+    <option value="Voće i povrće">🥦 Voće i povrće</option>
+    <option value="Slatkiši">🍫 Slatkiši</option>
+    <option value="Higijena">🧴 Higijena</option>
+    <option value="__nova__">➕ Dodaj novu kategoriju...</option>
+  </select>
+
+  {(formData.kategorija === '' || !['Hrana','Umaci','Sokovi','Mliječni','Meso','Voće i povrće','Slatkiši','Higijena'].includes(formData.kategorija)) && (
+    <input
+      type="text"
+      placeholder="Upiši naziv nove kategorije"
+      className="w-full p-3 bg-gray-700 text-white border-2 border-cyan-500 rounded-lg focus:border-cyan-400 focus:outline-none placeholder-gray-400"
+      value={formData.kategorija}
+      onChange={(e) => setFormData({...formData, kategorija: e.target.value})}
+      required
+    />
+  )}
+</div>
               
               <select
                 className="w-full p-3 bg-gray-700 text-white border-2 border-gray-600 rounded-lg focus:border-cyan-500 focus:outline-none"
