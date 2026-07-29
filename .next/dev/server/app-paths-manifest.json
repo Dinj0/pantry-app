@@ -1,5 +1,4 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
   "/api/arhiva/route": "app/api/arhiva/route.js",
   "/api/namirnice/route": "app/api/namirnice/route.js",
   "/page": "app/page.js"
