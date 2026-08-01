@@ -1,4 +1,0 @@
-{"timestamp":"00:00:31.902","source":"Server","level":"WARN","message":"⚠ Slow filesystem detected. The benchmark took 534ms. If E:\\Stuff\\Desktop\\GIThub\\pantry-app\\.next/dev is a network drive, consider moving it to a local folder.\nSee more: https://nextjs.org/docs/app/guides/local-development"}
-{"timestamp":"00:00:42.555","source":"Server","level":"LOG","message":""}
-{"timestamp":"00:00:50.607","source":"Server","level":"LOG","message":"○ Compiling / ..."}
-{"timestamp":"00:00:57.197","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
