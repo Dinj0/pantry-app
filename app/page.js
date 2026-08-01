@@ -211,14 +211,14 @@ export default function Home() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-900 p-8">
-      <h1 className="text-4xl font-bold text-center mb-8 text-cyan-400 drop-shadow-[0_0_15px_rgba(34,211,238,0.5)]">
+    <div className="min-h-screen bg-gray-900 p-4 md:p-8">
+      <h1 className="text-2xl md:text-4xl font-bold text-center mb-6 text-cyan-400 drop-shadow-[0_0_15px_rgba(34,211,238,0.5)]">
         🏠 Pantry Manager
       </h1>
 
-      <div className="flex gap-6">
+      <div className="flex flex-col md:flex-row gap-6">
         {/* LIJEVA STRANA */}
-        <div className="flex-1 flex gap-4">
+        <div className="flex-1 flex flex-col md:flex-row gap-4">
           {["Frižider", "Led", "Spajza"].map((lokacija) => {
             const isExpanded = expandedLokacija === lokacija;
             return (
@@ -251,20 +251,22 @@ export default function Home() {
                   {groupByLocation(lokacija).map((item) => (
                     <div
                       key={item.id}
-                      onClick={() =>
-                        setEditKolicine({
-                          id: item.id,
-                          naziv: item.naziv,
-                          trenutnaKolicina: item.trenutnaKolicina,
-                          minKolicina: item.minKolicina,
-                          targetKolicina: item.targetKolicina,
-                          kategorija: item.kategorija, // DODAJ OVO
-                        })
-                      }
-                      className="bg-gray-700 p-3 rounded border border-gray-600 hover:border-cyan-500 transition-all cursor-pointer"
+                      className="bg-gray-700 p-3 rounded border border-gray-600 hover:border-cyan-500 transition-all"
                     >
                       <div className="flex justify-between items-center mb-2">
-                        <span className="font-bold text-white">
+                        <span
+                          className="font-bold text-white cursor-pointer hover:text-cyan-400 transition-colors"
+                          onClick={() =>
+                            setEditKolicine({
+                              id: item.id,
+                              naziv: item.naziv,
+                              trenutnaKolicina: item.trenutnaKolicina,
+                              minKolicina: item.minKolicina,
+                              targetKolicina: item.targetKolicina,
+                              kategorija: item.kategorija,
+                            })
+                          }
+                        >
                           {item.naziv}
                         </span>
                         <div className="flex gap-2">
@@ -289,16 +291,8 @@ export default function Home() {
                           </button>
                         </div>
                       </div>
-                      <div
-                        className="text-sm text-gray-300 mb-3 cursor-pointer hover:text-cyan-400 transition-colors"
-                        title="Klikni za promjenu kategorije"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditNamirnica(item);
-                          setEditKatId("");
-                        }}
-                      >
-                        📂 {item.kategorija} ✏️
+                      <div className="text-sm text-gray-300 mb-3">
+                        📂 {item.kategorija}
                       </div>
                       <div className="flex items-center justify-center gap-3">
                         <button
@@ -337,7 +331,7 @@ export default function Home() {
         </div>
 
         {/* DESNA STRANA */}
-        <div className="w-80 space-y-4">
+        <div className="w-full md:w-80 space-y-4">
           <div className="bg-gray-800 rounded-lg shadow-xl border border-gray-700 overflow-hidden">
             <button
               onClick={() => setShowShoppingList(!showShoppingList)}
@@ -429,13 +423,13 @@ export default function Home() {
       {/* Floating gumbi */}
       <button
         onClick={() => setShowModal(true)}
-        className="fixed bottom-8 right-8 bg-cyan-500 hover:bg-cyan-600 text-white p-5 rounded-full shadow-2xl text-3xl hover:scale-110 transition-transform drop-shadow-[0_0_20px_rgba(34,211,238,0.7)]"
+        className="fixed bottom-6 right-6 bg-cyan-500 hover:bg-cyan-600 text-white p-4 md:p-5 rounded-full shadow-2xl text-2xl md:text-3xl hover:scale-110 transition-transform drop-shadow-[0_0_20px_rgba(34,211,238,0.7)]"
       >
         ➕
       </button>
       <button
         onClick={() => setShowKategorijeModal(true)}
-        className="fixed bottom-8 right-28 bg-indigo-500 hover:bg-indigo-600 text-white p-5 rounded-full shadow-2xl text-3xl hover:scale-110 transition-transform"
+        className="fixed bottom-6 right-20 md:right-28 bg-indigo-500 hover:bg-indigo-600 text-white p-4 md:p-5 rounded-full shadow-2xl text-2xl md:text-3xl hover:scale-110 transition-transform"
       >
         🏷️
       </button>
