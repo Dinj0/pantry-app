@@ -32,9 +32,16 @@ export default function Home() {
   const [novaShoppingStavka, setNovaShoppingStavka] = useState("");
   const [vratiUPantryModal, setVratiUPantryModal] = useState(null); // arhivska stavka
   const [vratiLokacija, setVratiLokacija] = useState("Frižider");
-  const [dodajUPantryModal, setDodajUPantryModal] = useState(null); // shopping stavka
-  const [dodajLokacija, setDodajLokacija] = useState("Frižider");
-  const [extraShopping, setExtraShopping] = useState([]); // ručno dodane stavke
+  const [dodajUPantryModal, setDodajUPantryModal] = useState(null);
+const [extraShopping, setExtraShopping] = useState([]);
+const [novaPantryStavka, setNovaPantryStavka] = useState({
+  trenutnaKolicina: "",
+  minKolicina: "",
+  targetKolicina: "",
+  kategorija: "",
+  lokacija: "Frižider",
+});
+
 
   const [formData, setFormData] = useState({
     naziv: "",
@@ -50,6 +57,8 @@ export default function Home() {
     fetchNamirnice();
     fetchArhiva();
     fetchKategorije();
+    fetchExtraShopping();
+
   }, []);
 
   const fetchNamirnice = async () => {
@@ -69,6 +78,12 @@ export default function Home() {
     const data = await res.json();
     setKategorije(data);
   };
+
+const fetchExtraShopping = async () => {
+  const res = await fetch("/api/shopping");
+  const data = await res.json();
+  setExtraShopping(Array.isArray(data) ? data : []);
+};
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -238,38 +253,67 @@ export default function Home() {
     fetchArhiva();
   };
 
-  const dodajExtraShoppingStavku = () => {
-    if (!novaShoppingStavka.trim()) return;
-    setExtraShopping([
-      ...extraShopping,
-      { naziv: novaShoppingStavka.trim(), id: Date.now() },
-    ]);
-    setNovaShoppingStavka("");
-    setShowDodajNaShopping(false);
-  };
+  const dodajExtraShoppingStavku = async () => {
+  const naziv = novaShoppingStavka.trim();
 
-  const ukloniExtraStavku = (id) => {
-    setExtraShopping(extraShopping.filter((s) => s.id !== id));
-  };
+  if (!naziv) return;
 
-  const dodajExtraUPantry = async (stavka) => {
-    await fetch("/api/namirnice", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        naziv: stavka.naziv,
-        trenutnaKolicina: 1,
-        minKolicina: 0,
-        targetKolicina: 1,
-        kategorija: "",
-        lokacija: dodajLokacija,
-        isLocked: true,
-      }),
-    });
-    ukloniExtraStavku(stavka.id);
-    setDodajUPantryModal(null);
-    fetchNamirnice();
-  };
+  await fetch("/api/shopping", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ naziv }),
+  });
+
+  setNovaShoppingStavka("");
+  setShowDodajNaShopping(false);
+  fetchExtraShopping();
+};
+
+const ukloniExtraStavku = async (id) => {
+  await fetch("/api/shopping", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id }),
+  });
+
+  fetchExtraShopping();
+};
+
+const dodajExtraUPantry = async (stavka) => {
+  const kategorija = novaPantryStavka.kategorija.trim();
+
+  await fetch("/api/namirnice", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      naziv: stavka.naziv,
+      trenutnaKolicina: parseInt(novaPantryStavka.trenutnaKolicina),
+      minKolicina: parseInt(novaPantryStavka.minKolicina),
+      targetKolicina: parseInt(novaPantryStavka.targetKolicina),
+      kategorija,
+      lokacija: novaPantryStavka.lokacija,
+      isLocked: false,
+    }),
+  });
+
+  await fetch("/api/shopping", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id: stavka.id }),
+  });
+
+  setDodajUPantryModal(null);
+  setNovaPantryStavka({
+    trenutnaKolicina: "",
+    minKolicina: "",
+    targetKolicina: "",
+    kategorija: "",
+    lokacija: "Frižider",
+  });
+
+  fetchNamirnice();
+  fetchExtraShopping();
+};
 
   const groupByLocation = (location) =>
     namirnice.filter((n) => n.lokacija === location);
@@ -421,7 +465,7 @@ export default function Home() {
             </div>
             {showShoppingList && (
               <div className="p-4 max-h-96 overflow-y-auto">
-                {shoppingList.length === 0 ? (
+               {shoppingList.length === 0 && extraShopping.length === 0 ? (
                   <p className="text-gray-400 text-center py-8">
                     Sve je na stanju! ✅
                   </p>
@@ -458,9 +502,15 @@ export default function Home() {
                         <div className="flex gap-2">
                           <button
                             onClick={() => {
-                              setDodajUPantryModal(stavka);
-                              setDodajLokacija("Frižider");
-                            }}
+  setDodajUPantryModal(stavka);
+  setNovaPantryStavka({
+    trenutnaKolicina: "",
+    minKolicina: "",
+    targetKolicina: "",
+    kategorija: "",
+    lokacija: "Frižider",
+  });
+}}
                             className="text-xl hover:scale-110 transition-transform"
                             title="Dodaj u pantry"
                           >
@@ -1005,41 +1055,142 @@ export default function Home() {
       )}
 
       {/* Modal - Dodaj extra shopping stavku u pantry */}
-      {dodajUPantryModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl border-2 border-yellow-500">
-            <h2 className="text-xl font-bold mb-2 text-yellow-400">
-              Dodaj u pantry
-            </h2>
-            <p className="text-white mb-4">
-              Odaberi lokaciju za <strong>{dodajUPantryModal.naziv}</strong>:
-            </p>
-            <select
-              className="w-full p-3 bg-gray-700 text-white border-2 border-gray-600 rounded-lg focus:border-yellow-500 focus:outline-none mb-4"
-              value={dodajLokacija}
-              onChange={(e) => setDodajLokacija(e.target.value)}
-            >
-              <option value="Frižider">🧊 Frižider</option>
-              <option value="Led">❄️ Led</option>
-              <option value="Spajza">🏺 Spajza</option>
-            </select>
-            <div className="flex gap-3">
-              <button
-                onClick={() => dodajExtraUPantry(dodajUPantryModal)}
-                className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white py-3 rounded-lg font-bold"
-              >
-                ✅ Dodaj
-              </button>
-              <button
-                onClick={() => setDodajUPantryModal(null)}
-                className="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-3 rounded-lg font-bold"
-              >
-                ❌ Odustani
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal - Dodaj shopping stavku u pantry */}
+{dodajUPantryModal && (
+  <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center p-4 z-50">
+    <div className="bg-gray-800 rounded-2xl p-6 w-full max-w-md shadow-2xl border-2 border-yellow-500">
+      <h2 className="text-2xl font-bold mb-2 text-yellow-400">
+        Dodaj u pantry
+      </h2>
+
+      <p className="text-white mb-5">
+        <strong>{dodajUPantryModal.naziv}</strong>
+      </p>
+
+      <div className="space-y-4">
+        <label className="block text-gray-300">
+          Trenutna količina
+          <input
+            type="number"
+            min="0"
+            required
+            className="w-full mt-1 p-3 bg-gray-700 text-white border-2 border-gray-600 rounded-lg focus:border-yellow-500 focus:outline-none"
+            value={novaPantryStavka.trenutnaKolicina}
+            onChange={(e) =>
+              setNovaPantryStavka({
+                ...novaPantryStavka,
+                trenutnaKolicina: e.target.value,
+              })
+            }
+          />
+        </label>
+
+        <label className="block text-gray-300">
+          Minimalna količina
+          <input
+            type="number"
+            min="0"
+            required
+            className="w-full mt-1 p-3 bg-gray-700 text-white border-2 border-gray-600 rounded-lg focus:border-yellow-500 focus:outline-none"
+            value={novaPantryStavka.minKolicina}
+            onChange={(e) =>
+              setNovaPantryStavka({
+                ...novaPantryStavka,
+                minKolicina: e.target.value,
+              })
+            }
+          />
+        </label>
+
+        <label className="block text-gray-300">
+          Target količina
+          <input
+            type="number"
+            min="0"
+            required
+            className="w-full mt-1 p-3 bg-gray-700 text-white border-2 border-gray-600 rounded-lg focus:border-yellow-500 focus:outline-none"
+            value={novaPantryStavka.targetKolicina}
+            onChange={(e) =>
+              setNovaPantryStavka({
+                ...novaPantryStavka,
+                targetKolicina: e.target.value,
+              })
+            }
+          />
+        </label>
+
+        <label className="block text-gray-300">
+          Kategorija <span className="text-gray-500">(nije obavezno)</span>
+          <select
+            className="w-full mt-1 p-3 bg-gray-700 text-white border-2 border-gray-600 rounded-lg focus:border-yellow-500 focus:outline-none"
+            value={novaPantryStavka.kategorija}
+            onChange={(e) =>
+              setNovaPantryStavka({
+                ...novaPantryStavka,
+                kategorija: e.target.value,
+              })
+            }
+          >
+            <option value="">-- Bez kategorije --</option>
+            {kategorije.map((k) => (
+              <option key={k.id} value={k.naziv}>
+                {k.naziv}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="block text-gray-300">
+          Lokacija
+          <select
+            className="w-full mt-1 p-3 bg-gray-700 text-white border-2 border-gray-600 rounded-lg focus:border-yellow-500 focus:outline-none"
+            value={novaPantryStavka.lokacija}
+            onChange={(e) =>
+              setNovaPantryStavka({
+                ...novaPantryStavka,
+                lokacija: e.target.value,
+              })
+            }
+          >
+            <option value="Frižider">🧊 Frižider</option>
+            <option value="Led">❄️ Led</option>
+            <option value="Spajza">🏺 Spajza</option>
+          </select>
+        </label>
+      </div>
+
+      <p className="text-sm text-yellow-300 mt-4">
+        🔓 Stavka će biti dodana otključana.
+      </p>
+
+      <div className="flex gap-3 mt-6">
+        <button
+          onClick={() => {
+            if (
+              novaPantryStavka.trenutnaKolicina === "" ||
+              novaPantryStavka.minKolicina === "" ||
+              novaPantryStavka.targetKolicina === ""
+            ) {
+              return;
+            }
+
+            dodajExtraUPantry(dodajUPantryModal);
+          }}
+          className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white py-3 rounded-lg font-bold"
+        >
+          ✅ Dodaj
+        </button>
+
+        <button
+          onClick={() => setDodajUPantryModal(null)}
+          className="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-3 rounded-lg font-bold"
+        >
+          ❌ Odustani
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }
