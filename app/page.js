@@ -64,43 +64,46 @@ export default function Home() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
+  let konacnaKategorija = formData.kategorija.trim();
 
-    let konacnaKategorija = formData.kategorija;
-
+  // Provjeri postoji li kategorija (samo ako nije prazna)
+  if (konacnaKategorija !== "") {
     const postoji = kategorije.find(
-      (k) => k.naziv.toLowerCase() === formData.kategorija.toLowerCase(),
+      (k) => k.naziv.toLowerCase() === konacnaKategorija.toLowerCase()
     );
 
-    if (!postoji && formData.kategorija.trim() !== "") {
+    if (!postoji) {
       const resKat = await fetch("/api/kategorije", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ naziv: formData.kategorija.trim() }),
+        body: JSON.stringify({ naziv: konacnaKategorija }),
       });
       const novaKat = await resKat.json();
       konacnaKategorija = novaKat.naziv;
       fetchKategorije();
     }
+  }
 
-    await fetch("/api/namirnice", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...formData, kategorija: konacnaKategorija }),
-    });
+  // Ovo mora biti IZVAN if bloka da bi se namirnica uvijek spremila
+  await fetch("/api/namirnice", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...formData, kategorija: konacnaKategorija }),
+  });
 
-    setShowModal(false);
-    setFormData({
-      naziv: "",
-      trenutnaKolicina: "",
-      minKolicina: "",
-      targetKolicina: "",
-      kategorija: "",
-      lokacija: "Frižider",
-      isLocked: true,
-    });
-    fetchNamirnice();
-  };
+  setShowModal(false);
+  setFormData({
+    naziv: "",
+    trenutnaKolicina: "",
+    minKolicina: "",
+    targetKolicina: "",
+    kategorija: "",
+    lokacija: "Frižider",
+    isLocked: true,
+  });
+  fetchNamirnice();
+};
 
   const toggleLock = async (id, currentLockStatus) => {
     await fetch("/api/namirnice", {
@@ -224,7 +227,7 @@ export default function Home() {
             return (
               <div
                 key={lokacija}
-                className={`bg-gray-800 rounded-lg shadow-xl border border-gray-700 transition-all duration-300 ${
+                className={`bg-gray-800 rounded-lg shadow-xl border border-gray-700 transition-all duration-300 flex flex-col min-h-[70vh] ${
                   isExpanded ? "flex-[3]" : "flex-1"
                 }`}
               >
@@ -246,7 +249,7 @@ export default function Home() {
                   </span>
                 </h2>
                 <div
-                  className={`p-4 space-y-3 overflow-y-auto transition-all duration-300 ${isExpanded ? "max-h-[70vh]" : "max-h-96"}`}
+                  className={`p-4 space-y-3 overflow-y-auto transition-all duration-300 ${isExpanded ? "max-h-[70vh]" : "max-h-[calc(8*5.5rem)]"}`}
                 >
                   {groupByLocation(lokacija).map((item) => (
                     <div
@@ -450,7 +453,6 @@ export default function Home() {
                 onChange={(e) =>
                   setFormData({ ...formData, naziv: e.target.value })
                 }
-                required
               />
               <input
                 type="number"
@@ -512,7 +514,7 @@ export default function Home() {
                     onChange={(e) =>
                       setFormData({ ...formData, kategorija: e.target.value })
                     }
-                    required
+                  
                   />
                 )}
               </div>
